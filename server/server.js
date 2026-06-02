@@ -1236,10 +1236,12 @@ async function startServer() {
       users.createIndex({ email: 1 }, { unique: true }),
       newsletterSubscribers.createIndex({ email: 1 }, { unique: true }),
     ]);
-
-    app.listen(port, () => {
-      console.log(`VR BITES API running at http://localhost:${port}`);
-    });
+    
+    if (process.env.NODE_ENV !== "production") {
+  app.listen(port, () => {
+    console.log(`VR BITES API running at http://localhost:${port}`);
+  });
+}
   } catch (error) {
     console.error("Failed to start server:", error);
     process.exit(1);
@@ -1247,3 +1249,4 @@ async function startServer() {
 }
 
 startServer();
+module.exports = app;
