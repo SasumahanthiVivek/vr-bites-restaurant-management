@@ -1,0 +1,1917 @@
+/* ================================================================
+   VR BITES — GLOBAL RESPONSIVE STYLESHEET
+   Covers: 320px → 2560px
+   Breakpoints:
+     xs  < 480px   (small phones)
+     sm  < 576px   (phones)
+     md  < 768px   (large phones / small tablets)
+     lg  < 992px   (tablets)
+     xl  < 1200px  (small desktops)
+     2xl < 1400px  (desktops)
+================================================================ */
+
+/* ── 1. BASE / GLOBAL ─────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+img,
+video,
+canvas,
+svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+table {
+  border-collapse: collapse;
+}
+
+/* ── 2. NAVBAR ────────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .glass-nav .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .brand-title {
+    font-size: 1.12rem;
+  }
+
+  .brand-logo {
+    height: 36px;
+    width: auto;
+  }
+
+  .mobile-top-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .brand-title {
+    font-size: 1rem;
+  }
+
+  .brand-logo {
+    height: 30px;
+  }
+}
+
+/* ── 3. HERO / HOME ───────────────────────────────────────────── */
+@media (max-width: 1199.98px) {
+  .hero-image-stage {
+    height: 380px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .hero-section,
+  .hero-wrapper {
+    min-height: auto;
+    padding-top: 80px;
+    padding-bottom: 48px;
+  }
+
+  .hero-image-stage {
+    height: 320px;
+    margin-top: 24px;
+  }
+
+  .hero-content {
+    text-align: center;
+  }
+
+  .hero-title,
+  .hero-main-title {
+    font-size: clamp(1.8rem, 7vw, 2.8rem);
+  }
+
+  .hero-subtitle,
+  .hero-sub {
+    font-size: clamp(0.95rem, 3vw, 1.1rem);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .hero-cta-group {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .hero-image-stage {
+    height: 260px;
+  }
+
+  .hero-title,
+  .hero-main-title {
+    font-size: clamp(1.6rem, 8.5vw, 2.2rem);
+  }
+
+  .hero-slide-title {
+    font-size: 0.88rem;
+    padding: 8px 14px;
+    width: 90%;
+  }
+
+  .hero-slide-description {
+    font-size: 0.8rem;
+    max-width: 98%;
+  }
+
+  .hero-slider-arrow {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .hero-section,
+  .hero-wrapper {
+    padding-top: 70px;
+  }
+
+  .hero-image-stage {
+    height: 220px;
+  }
+
+  .hero-cta-group .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── 4. SECTION HEADINGS (global) ────────────────────────────── */
+@media (max-width: 767.98px) {
+  .section-title {
+    font-size: clamp(1.5rem, 7vw, 2rem);
+  }
+
+  .section-sub {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .section-title {
+    font-size: clamp(1.35rem, 8vw, 1.7rem);
+  }
+}
+
+/* ── 5. MENU PAGE ─────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .menu-page-section {
+    padding-top: 80px;
+  }
+
+  .menu-heading-wrap {
+    text-align: center;
+  }
+
+  .menu-filters-bar {
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .menu-filter-btn {
+    font-size: 0.85rem;
+    padding: 6px 14px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .menu-search-wrap {
+    width: 100%;
+  }
+
+  .menu-card img {
+    height: 180px;
+    object-fit: cover;
+  }
+
+  .menu-card-body {
+    padding: 12px;
+  }
+
+  .menu-title {
+    font-size: 0.97rem;
+  }
+
+  .menu-desc {
+    font-size: 0.85rem;
+  }
+
+  .menu-price {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .menu-card img {
+    height: 160px;
+  }
+
+  .menu-grid,
+  .food-items-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+/* ── 6. ABOUT PAGE ────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .about-hero-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .about-hero-image-wrap {
+    width: 100%;
+    max-height: 340px;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .about-hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .owner-intro-section .row {
+    flex-direction: column;
+  }
+
+  .owner-image-wrap {
+    width: 100%;
+    max-height: 320px;
+    overflow: hidden;
+  }
+
+  .owner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .about-page-section {
+    padding: 52px 0;
+  }
+
+  .about-card-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .about-value-card {
+    padding: 18px;
+  }
+
+  .about-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .about-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── 7. CHECKOUT PAGE ─────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .checkout-grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .checkout-card {
+    padding: 20px 16px;
+    border-radius: 16px;
+  }
+
+  .checkout-card h2 {
+    font-size: 1.2rem;
+  }
+
+  .checkout-line,
+  .checkout-total {
+    font-size: 0.92rem;
+    gap: 6px;
+  }
+
+  .checkout-line strong,
+  .checkout-total strong {
+    max-width: 60%;
+    text-align: right;
+    word-break: break-word;
+  }
+
+  .checkout-pay-btn {
+    font-size: 0.95rem;
+    padding: 13px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .checkout-card {
+    padding: 16px 12px;
+  }
+}
+
+/* ── 8. RESERVATION FORM (Book Table) ────────────────────────── */
+@media (max-width: 991.98px) {
+  .book-table-page {
+    padding-top: 80px;
+  }
+
+  .reservation-card {
+    max-width: 100%;
+    border-radius: 16px;
+  }
+
+  .reservation-card-body {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .reservation-card-body {
+    padding: 18px 14px;
+  }
+
+  .reservation-title {
+    font-size: 1.3rem;
+  }
+
+  .reservation-intro {
+    font-size: 0.9rem;
+  }
+
+  .res-pricing-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .res-pricing-total-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .res-sum-row {
+    font-size: 13px;
+  }
+
+  .res-sum-total strong {
+    font-size: 16px;
+  }
+
+  .res-success-icon {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
+
+  .reservation-submit {
+    font-size: 0.95rem;
+    padding: 13px;
+  }
+
+  .status-modal-actions.two-cols {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .status-modal-actions.two-cols .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .book-table-hero .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .book-table-title {
+    font-size: clamp(1.5rem, 9vw, 1.9rem);
+  }
+
+  .reservation-card-body {
+    padding: 14px 12px;
+  }
+
+  .reservation-input-group .input-group-text {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+
+  .reservation-input-group .form-control {
+    font-size: 0.9rem;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .res-success-detail {
+    overflow: visible;
+  }
+
+  .res-sum-row-booking-id {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+    align-items: start;
+    gap: 4px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .res-sum-row-booking-id span,
+  .res-sum-row-booking-id strong {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    line-height: 1.35;
+    text-align: left;
+  }
+}
+
+/* ── 9. BOOK TABLE ADMIN BLOCK ────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .admin-booktable-block {
+    padding: 22px 16px;
+    border-radius: 16px;
+    text-align: center;
+  }
+
+  .admin-booktable-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-booktable-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ── 10. DASHBOARD SHARED ─────────────────────────────────────── */
+@media (max-width: 575.98px) {
+  .db-content {
+    padding: 10px 10px 24px;
+  }
+
+  .db-section-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .db-section-head h2 {
+    font-size: 1.1rem;
+  }
+
+  .db-card {
+    border-radius: 14px;
+    padding: 14px;
+  }
+
+  .db-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .db-stat-card {
+    padding: 14px;
+  }
+
+  .db-stat-value {
+    font-size: 1.35rem;
+  }
+
+  .db-stat-label {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .db-stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .db-stat-card {
+    padding: 12px 10px;
+  }
+
+  .db-stat-value {
+    font-size: 1.2rem;
+  }
+}
+
+/* ── 11. DASHBOARD TABLES (scroll on mobile) ──────────────────── */
+@media (max-width: 991.98px) {
+  .db-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 12px;
+  }
+
+  .db-table {
+    min-width: 700px;
+    font-size: 0.85rem;
+  }
+
+  .db-table th,
+  .db-table td {
+    padding: 9px 10px;
+    white-space: nowrap;
+  }
+}
+
+/* Tables hidden on mobile; cards shown instead */
+@media (max-width: 767.98px) {
+  .db-user-reservations-table,
+  .db-admin-reservations-table,
+  .db-admin-orders-table,
+  .db-admin-menu-table,
+  .db-admin-customers-table,
+  .recent-orders-table {
+    display: none !important;
+  }
+
+  .db-user-reservation-cards,
+  .db-admin-reservations-cards,
+  .db-admin-orders-cards,
+  .db-admin-menu-cards,
+  .db-admin-customers-cards,
+  .db-mobile-orders {
+    display: grid !important;
+    gap: 10px;
+  }
+
+  .db-mobile-order-card {
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+
+  .db-mobile-order-card p {
+    margin-bottom: 5px;
+    word-break: break-word;
+  }
+
+  .db-select {
+    font-size: 0.85rem;
+    padding: 5px 8px;
+  }
+
+  .db-table-action {
+    font-size: 0.78rem;
+    padding: 5px 10px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .db-mobile-order-card {
+    padding: 12px;
+    font-size: 0.85rem;
+  }
+}
+
+/* ── 12. USER DASHBOARD ───────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .db-insight-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .db-insight-card {
+    padding: 16px;
+  }
+
+  .db-order-filters {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .db-filter-btn {
+    font-size: 0.8rem;
+    padding: 5px 12px;
+  }
+
+  .order-status-stepper {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .order-status-stepper .step {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+  }
+}
+
+/* Live order tracker */
+@media (max-width: 767.98px) {
+  .live-tracker-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .live-map-phone {
+    min-height: 420px;
+    border-radius: 14px;
+  }
+
+  .live-map-canvas {
+    height: 358px;
+  }
+
+  .live-map-topbar {
+    height: 56px;
+    padding: 0 12px;
+    grid-template-columns: 32px 1fr 32px;
+  }
+
+  .live-map-topbar strong {
+    font-size: 0.95rem;
+  }
+
+  .live-status-metrics {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .track-order-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .live-tracker-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .live-order-select {
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .driver-info-pop {
+    left: 50%;
+    transform: translateX(-50%);
+    top: 45%;
+    min-width: min(220px, 80vw);
+  }
+}
+
+@media (max-width: 479.98px) {
+  .live-map-phone {
+    min-height: 360px;
+    border-radius: 12px;
+  }
+
+  .live-map-canvas {
+    height: 298px;
+  }
+}
+
+/* ── 13. ADMIN DASHBOARD ──────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .db-topbar {
+    padding: 12px 14px;
+  }
+
+  .db-page-title {
+    font-size: clamp(0.95rem, 5vw, 1.2rem);
+  }
+
+  .db-search-wrap {
+    width: min(44vw, 260px);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .db-topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 74px;
+  }
+
+  .db-topbar-right {
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .db-user-name {
+    display: none;
+  }
+
+  .db-food-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .db-settings-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .db-form-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .admin-action-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .admin-action-bar .btn {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .db-food-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .db-topbar-right .db-search-wrap {
+    display: none;
+  }
+}
+
+/* ── 14. CHECKOUT + PAYMENT FORMS ─────────────────────────────── */
+@media (max-width: 767.98px) {
+  .card-input-wrap {
+    padding: 14px 12px;
+    border-radius: 10px;
+  }
+
+  .checkout-form label {
+    font-size: 0.9rem;
+  }
+
+  .payment-head p {
+    font-size: 0.85rem;
+  }
+}
+
+/* ── 15. MODAL / OVERLAY ──────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .order-modal-backdrop,
+  .order-success-pop {
+    padding: 10px;
+    place-items: end center;
+    align-content: end;
+  }
+
+  .order-modal-card {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding: 20px 16px 28px;
+    max-height: 92dvh;
+    overflow-y: auto;
+  }
+
+  .status-modal-card {
+    border-radius: 18px 18px 0 0;
+  }
+
+  .status-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .status-modal-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .logout-modal-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .logout-modal-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .order-modal-card {
+    padding: 16px 12px 24px;
+  }
+}
+
+/* ── 16. FEATURED FOOD + POPULAR FOOD ────────────────────────── */
+@media (max-width: 991.98px) {
+  .featured-food-section,
+  .popular-food-section {
+    padding-top: 48px;
+    padding-bottom: 52px;
+  }
+
+  .featured-cards-grid {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .featured-card img,
+  .popular-card img {
+    height: 165px;
+  }
+
+  .featured-card-body,
+  .popular-card-body {
+    padding: 12px;
+  }
+
+  .featured-card-title,
+  .popular-card-title {
+    font-size: 0.95rem;
+  }
+
+  .featured-card-price,
+  .popular-card-price {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .featured-card img,
+  .popular-card img {
+    height: 148px;
+  }
+}
+
+/* ── 17. MENU DISCOVERY PAGE ──────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .menu-discovery-hero {
+    padding-top: 88px;
+    text-align: center;
+  }
+
+  .menu-discovery-title {
+    font-size: clamp(1.6rem, 7vw, 2.4rem);
+  }
+}
+
+@media (max-width: 767.98px) {
+  .menu-discovery-highlights {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .menu-discovery-copy {
+    font-size: 0.95rem;
+  }
+}
+
+/* ── 18. CHEF SPECIALS ────────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .chef-specials-section {
+    padding-top: 80px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .chef-specials-section .row {
+    --bs-gutter-x: 10px;
+  }
+}
+
+/* ── 19. FEATURED ITEM DETAIL ─────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .featured-detail-section {
+    padding-top: 90px;
+  }
+
+  .featured-detail-grid {
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .featured-detail-image-wrap {
+    width: 100%;
+    max-height: 340px;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+
+  .featured-detail-title {
+    font-size: clamp(1.6rem, 6vw, 2rem);
+  }
+
+  .featured-detail-meta {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .featured-detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .featured-detail-tags {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .featured-detail-tag {
+    font-size: 0.82rem;
+    padding: 4px 10px;
+  }
+}
+
+/* ── 20. OFFERS + CAREERS + LEGAL PAGES ──────────────────────── */
+@media (max-width: 767.98px) {
+  .owner-intro-section {
+    padding-top: 80px;
+  }
+
+  .about-hero-grid,
+  .about-story-grid {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .about-hero-image-wrap,
+  .about-story-image-wrap {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 14px;
+    overflow: hidden;
+  }
+
+  .about-value-card {
+    padding: 18px 16px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .owner-intro-section {
+    padding-top: 72px;
+  }
+}
+
+/* ── 21. CUSTOMER FEEDBACK / TESTIMONIALS ─────────────────────── */
+@media (max-width: 991.98px) {
+  .customer-feedback-section {
+    padding-top: 52px;
+    padding-bottom: 56px;
+  }
+
+  .testimonial-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .testimonial-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .customer-card {
+    padding: 18px;
+  }
+
+  .testimonial-review-card {
+    padding: 14px;
+  }
+
+  .feedback-avatar {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+/* ── 22. WHY CHOOSE US ────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .why-choose-grid {
+    gap: 16px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .why-choose-card {
+    padding: 18px 16px;
+  }
+
+  .why-choose-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 1.3rem;
+  }
+}
+
+/* ── 23. NEWSLETTER ───────────────────────────────────────────── */
+
+@media (max-width: 767.98px) {
+  .newsletter-subscribe {
+    padding: 24px 16px;
+    gap: 12px;
+    border-radius: 18px;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .newsletter-copy {
+    text-align: center;
+    width: 100%;
+  }
+
+  .newsletter-form {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .newsletter-form .form-control {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .newsletter-form .btn-brand {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .newsletter-title {
+    font-size: clamp(1.4rem, 7.5vw, 1.8rem);
+    text-align: center;
+  }
+
+  .newsletter-message {
+    text-align: center;
+    font-size: 0.9rem;
+  }
+
+  .newsletter-subscribed-panel {
+    width: 100%;
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .newsletter-subscribed-panel div {
+    text-align: center;
+  }
+
+  .newsletter-subscribed-panel button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .newsletter-subscribe {
+    padding: 18px 12px;
+    gap: 10px;
+  }
+
+  .newsletter-title {
+    font-size: clamp(1.2rem, 6vw, 1.6rem);
+    margin-bottom: 8px !important;
+  }
+
+  .newsletter-kicker {
+    font-size: 0.7rem;
+    margin-bottom: 6px !important;
+  }
+
+  .newsletter-description {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
+
+  .newsletter-form .form-control {
+    padding: 0.6rem 0.85rem;
+    font-size: 0.9rem;
+  }
+
+  .newsletter-form .btn-brand {
+    padding-inline: 0.9rem;
+    font-size: 0.9rem;
+  }
+}
+/* ── 24. FOOTER ───────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .site-footer-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .site-footer-main {
+    padding-top: 40px;
+    padding-bottom: 36px;
+  }
+
+  .site-footer-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .site-footer-col {
+    text-align: center;
+  }
+
+  .site-footer-heading {
+    margin-bottom: 8px;
+  }
+
+  .site-footer-contact {
+    justify-content: center;
+  }
+
+  .site-footer-contact li {
+    justify-content: center;
+  }
+
+  .site-footer-social {
+    justify-content: center;
+  }
+
+  .site-footer-bottom-content {
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .site-footer-links-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .site-footer-main {
+    padding-top: 32px;
+    padding-bottom: 28px;
+  }
+
+  .site-footer-grid {
+    gap: 16px;
+  }
+
+  .site-footer-desc {
+    max-width: 100%;
+    word-break: break-word;
+  }
+
+  .site-footer-heading {
+    font-size: 0.85rem;
+  }
+
+  .site-footer-links a,
+  .site-footer-contact a,
+  .site-footer-contact span {
+    font-size: 0.88rem;
+  }
+
+  .site-footer-brand {
+    font-size: 1rem;
+  }
+
+  .site-footer-bottom-content {
+    font-size: 0.8rem;
+  }
+}
+
+/* ── 25. FOOD ITEMS (food.css classes) ────────────────────────── */
+@media (max-width: 991.98px) {
+  .food-section {
+    padding-top: 52px;
+    padding-bottom: 56px;
+  }
+}
+
+@media (max-width: 767.98px) {
+  .food-card {
+    border-radius: 14px;
+  }
+
+  .food-card-img {
+    height: 160px;
+  }
+
+  .food-card-body {
+    padding: 12px;
+  }
+
+  .food-card-name {
+    font-size: 0.95rem;
+  }
+
+  .food-card-price {
+    font-size: 1rem;
+  }
+
+  .food-card-btn {
+    font-size: 0.85rem;
+    padding: 8px 14px;
+  }
+
+  .food-order-modal-inner {
+    padding: 20px 14px 28px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .food-order-modal-img {
+    height: 180px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .food-card-img {
+    height: 140px;
+  }
+}
+
+/* ── 26. MENUS SECTION (homepage component) ───────────────────── */
+@media (max-width: 767.98px) {
+  .menu-section-img {
+    height: 220px;
+    border-radius: 14px;
+  }
+
+  .menu-section-body {
+    padding: 14px 0;
+  }
+}
+
+/* ── 27. GENERAL UTILITY ──────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .page-shell {
+    padding-top: 72px;
+  }
+
+  .container {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .btn {
+    font-size: 0.9rem;
+  }
+
+  .btn-brand,
+  .btn-outline-brand {
+    padding: 10px 20px;
+  }
+
+  /* Bootstrap column helpers on small screens */
+  .col-xs-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 479.98px) {
+  .page-shell {
+    padding-top: 68px;
+  }
+
+  .container {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .btn-brand,
+  .btn-outline-brand {
+    padding: 9px 16px;
+    font-size: 0.87rem;
+  }
+}
+
+/* ── 28. WIDE SCREENS ─────────────────────────────────────────── */
+@media (min-width: 1400px) {
+  .container {
+    max-width: 1320px;
+  }
+
+  .hero-title,
+  .hero-main-title {
+    font-size: 3.6rem;
+  }
+
+  .section-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (min-width: 1920px) {
+  .container {
+    max-width: 1480px;
+  }
+}
+
+/* ── 29. TOUCH / POINTER REFINEMENTS ─────────────────────────── */
+@media (hover: none) and (pointer: coarse) {
+  .btn,
+  .nav-link,
+  .profile-menu-item,
+  .db-menu-item,
+  .reservation-submit,
+  .checkout-pay-btn {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px !important; /* prevent iOS zoom */
+  }
+}
+
+/* ── 30. PRINT ────────────────────────────────────────────────── */
+@media print {
+  .navbar,
+  .site-footer-main,
+  .db-sidebar,
+  .db-topbar,
+  .btn,
+  .newsletter-subscribe {
+    display: none !important;
+  }
+
+  body {
+    font-size: 12pt;
+    color: #000;
+  }
+
+  a {
+    text-decoration: none;
+    color: #000;
+  }
+}
+
+/* ================================================================
+   VR BITES — EXTENDED RESPONSIVE ADDITIONS
+   Full coverage: 320px → 2560px across all pages and components
+================================================================ */
+
+/* ── A. USER DASHBOARD DETAILS MODAL ──────────────────────────── */
+/* Modal — general viewport-aware sizing */
+[role="dialog"] > article {
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  [role="dialog"] {
+    padding: 10px !important;
+    align-items: flex-end !important;
+    align-content: flex-end;
+  }
+
+  [role="dialog"] > article {
+    width: 100% !important;
+    border-radius: 18px 18px 0 0 !important;
+    max-height: 92dvh;
+  }
+}
+
+@media (max-width: 479.98px) {
+  [role="dialog"] > article > div > div {
+    grid-template-columns: 1fr !important;
+  }
+
+  [role="dialog"] > article > div {
+    padding: 14px !important;
+  }
+}
+
+/* ── B. ORDER HISTORY CARDS (User Dashboard) ──────────────────── */
+@media (max-width: 900px) {
+  /* Order card: stack image + info vs. actions */
+  .order-card-actions {
+    flex: 1 1 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Order action button row wraps gracefully */
+  .order-card-btn-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Order status stepper smaller on phones */
+  .order-status-stepper {
+    font-size: 0.72rem;
+    gap: 3px;
+  }
+
+  .order-status-stepper .step {
+    font-size: 0.72rem;
+    padding: 2px 6px;
+  }
+}
+
+/* ── C. USER DASHBOARD — INSIGHTS / METRICS CARDS ─────────────── */
+@media (max-width: 640px) {
+  /* PremiumMetricCard grid */
+  .db-content > section > div[style*="minmax(170px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .db-content > section > div[style*="minmax(170px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── D. USER DASHBOARD — CHART CONTAINERS ─────────────────────── */
+@media (max-width: 640px) {
+  .db-content article[style*="PremiumBarChart"],
+  .db-content article[style*="PremiumLineChart"] {
+    overflow-x: auto;
+  }
+}
+
+/* ── E. USER DASHBOARD — TRACKING PAGE ───────────────────────── */
+@media (max-width: 640px) {
+  /* Tracking map info overlay wraps */
+  section[aria-label="Delivery map"] > div[style*="relative"][style*="zIndex"] {
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 14px !important;
+  }
+
+  section[aria-label="Delivery map"] > div > div[style*="maxWidth: 430"] {
+    max-width: 100% !important;
+  }
+
+  section[aria-label="Delivery map"] > div > div[style*="minWidth: 280"] {
+    min-width: 0 !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 400px) {
+  section[aria-label="Delivery map"] > div > div[style*="minWidth: 280"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── F. ADMIN DASHBOARD — PREMIUM RESERVATION TABLE ───────────── */
+@media (max-width: 1100px) {
+  .premium-table-header,
+  .premium-table-row {
+    grid-template-columns: 110px 140px 118px 96px 190px 68px 100px 96px minmax(200px, 1fr) !important;
+    font-size: 12px;
+  }
+
+  .premium-table-cell {
+    padding: 10px 8px;
+    min-height: 64px;
+  }
+}
+
+@media (max-width: 900px) {
+  .premium-table-header,
+  .premium-table-row {
+    grid-template-columns: 100px 130px 108px 86px 170px 60px 90px 86px minmax(180px, 1fr) !important;
+  }
+
+  .premium-actions-cell .db-icon-action {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    padding: 0;
+    font-size: 0;
+  }
+}
+
+/* ── G. ADMIN DASHBOARD ORDERS TABLE (db-table) ───────────────── */
+@media (max-width: 1100px) {
+  .db-admin-orders-table .db-table {
+    min-width: 900px;
+    font-size: 13px;
+  }
+
+  .db-admin-orders-table .db-table th,
+  .db-admin-orders-table .db-table td {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .db-admin-orders-table .db-table {
+    min-width: 750px;
+    font-size: 12px;
+  }
+
+  .db-admin-orders-table .db-table th,
+  .db-admin-orders-table .db-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ── H. ADMIN CUSTOMERS TABLE ──────────────────────────────────── */
+@media (max-width: 1100px) {
+  .db-admin-customers-table .db-table {
+    min-width: 800px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .db-admin-customers-table .db-table {
+    min-width: 650px;
+    font-size: 12px;
+  }
+
+  .db-admin-customers-table .db-table th,
+  .db-admin-customers-table .db-table td {
+    padding: 8px 10px;
+    white-space: normal;
+    word-break: break-word;
+  }
+}
+
+/* ── I. USER DASHBOARD — RESERVATIONS TABLE ───────────────────── */
+@media (max-width: 1100px) {
+  .db-user-reservations-table .db-table {
+    min-width: 860px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .db-user-reservations-table .db-table {
+    min-width: 720px;
+    font-size: 12px;
+  }
+
+  .db-user-reservations-table .db-table th,
+  .db-user-reservations-table .db-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* ── J. ALL TABLE CONTAINERS: prevent page overflow ───────────── */
+.db-table-wrap,
+.db-res-table-wrap,
+.premium-card-table {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ── K. SIDEBAR RESPONSIVE FIXES ──────────────────────────────── */
+@media (max-width: 992px) {
+  .db-sidebar {
+    width: 260px;
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 480px) {
+  .db-sidebar {
+    width: 80vw;
+    min-width: 0;
+    max-width: 300px;
+  }
+}
+
+/* ── L. DASHBOARD TOPBAR / NAVBAR RESPONSIVE ──────────────────── */
+@media (max-width: 400px) {
+  .db-topbar {
+    padding: 10px 10px !important;
+    gap: 6px !important;
+  }
+
+  .db-page-title {
+    font-size: 1rem !important;
+  }
+
+  .db-icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .db-user-trigger {
+    padding: 4px 8px 4px 5px;
+    gap: 6px;
+  }
+
+  .db-avatar-img,
+  .db-avatar-fallback {
+    width: 28px;
+    height: 28px;
+  }
+}
+
+/* ── M. FOOD CARDS FULL RESPONSIVE ────────────────────────────── */
+@media (max-width: 640px) {
+  .db-food-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .db-food-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* FoodCard component */
+@media (max-width: 640px) {
+  .food-card {
+    border-radius: 12px;
+  }
+
+  .food-card-img,
+  .food-card img {
+    height: 150px;
+    object-fit: cover;
+    width: 100%;
+  }
+}
+
+/* ── N. MOBILE ORDER CARDS (admin) ────────────────────────────── */
+@media (max-width: 640px) {
+  .db-mobile-order-card {
+    padding: 12px;
+    font-size: 0.85rem;
+    border-radius: 10px;
+  }
+
+  .db-mobile-order-card .db-badge {
+    font-size: 0.75rem;
+    padding: 3px 8px;
+  }
+
+  .db-mobile-order-card .db-action-btns {
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+  }
+}
+
+/* ── O. ADMIN DASHBOARD SETTINGS GRID ─────────────────────────── */
+@media (max-width: 900px) {
+  .db-settings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .db-settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── P. DB MODAL (reservation view modal) ─────────────────────── */
+@media (max-width: 600px) {
+  .db-modal-backdrop {
+    padding: 10px;
+    align-content: end;
+  }
+
+  .db-res-modal {
+    width: 100%;
+    max-height: 92dvh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .db-res-modal-head {
+    padding: 16px 18px;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .db-res-modal-head h3 {
+    font-size: 1.1rem;
+  }
+
+  .db-res-modal-grid {
+    padding: 8px 16px 18px;
+  }
+}
+
+/* ── Q. DB SPLIT GRID (admin menu add form) ───────────────────── */
+@media (max-width: 900px) {
+  .db-split-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px;
+  }
+}
+
+/* ── R. USER DASHBOARD ACCOUNT SNAPSHOT GRID ─────────────────── */
+@media (max-width: 900px) {
+  .db-settings-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ── S. NAVBAR — MAIN SITE ─────────────────────────────────────── */
+@media (max-width: 767.98px) {
+  .navbar-brand .brand-title {
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 380px) {
+  .navbar-brand .brand-title {
+    display: none;
+  }
+
+  .navbar .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* ── T. HERO SECTION BUTTONS ──────────────────────────────────── */
+@media (max-width: 400px) {
+  .hero-cta-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-cta-group .btn,
+  .hero-cta-group a {
+    width: 100%;
+    text-align: center;
+    justify-content: center;
+  }
+}
+
+/* ── U. HOMEPAGE FOOD SECTION GRID ───────────────────────────── */
+@media (max-width: 480px) {
+  .food-items-grid,
+  .featured-cards-grid,
+  .popular-cards-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .food-items-grid,
+  .featured-cards-grid,
+  .popular-cards-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── V. OVERFLOW PREVENTION: global safety net ────────────────── */
+html, body {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+main,
+.page-shell,
+.db-layout,
+.db-main,
+.db-content {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* ── W. TABLET LANDSCAPE (768px – 1024px) ─────────────────────── */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .db-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .db-content {
+    padding: 16px;
+  }
+
+  .db-split-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .premium-table-header,
+  .premium-table-row {
+    grid-template-columns: 106px 134px 112px 92px 182px 64px 96px 92px minmax(210px, 1fr) !important;
+  }
+}
+
+/* ── X. LARGE SCREENS (1400px+) ───────────────────────────────── */
+@media (min-width: 1400px) {
+  .db-content {
+    padding: 28px 32px;
+    gap: 22px;
+  }
+
+  .db-stats-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1920px) {
+  .db-content {
+    padding: 32px 40px;
+  }
+
+  .db-stat-card {
+    padding: 26px;
+  }
+}
+
+/* ── Y. USER DASHBOARD — ORDER CARDS MOBILE ──────────────────── */
+@media (max-width: 640px) {
+  /* Full-width image + stacked layout */
+  .db-content article[style*="flexWrap: \"wrap\""] {
+    flex-direction: column;
+    align-items: flex-start !important;
+  }
+
+  /* Make order card image full-width on mobile */
+  .db-content article[style*="flexWrap: \"wrap\""] > div:first-child {
+    width: 100% !important;
+    height: 160px !important;
+    border-radius: 10px !important;
+  }
+
+  /* Action buttons: full-width row */
+  .db-content article[style*="flexWrap: \"wrap\""] > div:last-child {
+    flex: 1 1 100% !important;
+    justify-content: flex-start !important;
+  }
+}
+
+/* ── Z. GENERAL CARD GRID STACKING ───────────────────────────── */
+@media (max-width: 576px) {
+  /* Any auto-fit grid goes single column under 576px */
+  [style*="repeat(auto-fit, minmax(240px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  [style*="repeat(auto-fit, minmax(280px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  [style*="repeat(auto-fit, minmax(170px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 380px) {
+  [style*="repeat(auto-fit, minmax(170px"] {
+    grid-template-columns: 1fr !important;
+  }
+}
