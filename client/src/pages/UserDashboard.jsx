@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import {
@@ -14,6 +14,8 @@ import {
   MapPin,
   Navigation,
   Phone,
+  Settings,
+  UserCircle,
   RotateCcw,
   ShoppingBag,
   Sparkles,
@@ -31,10 +33,30 @@ const menuItems = [
   { key: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { key: "orders", label: "My Orders", icon: ShoppingBag },
   { key: "reservations", label: "My Reservations", icon: CalendarCheck2 },
+  { key: "profile", label: "Profile", icon: UserCircle },
+  { key: "settings", label: "Settings", icon: Settings },
   { key: "insights", label: "Insights", icon: Sparkles },
 ];
 
 const allowedTabs = new Set([...menuItems.map((item) => item.key), "tracking"]);
+const userPathByTab = {
+  dashboard: "/user-dashboard",
+  orders: "/my-orders",
+  reservations: "/my-reservations",
+  profile: "/user-dashboard/profile",
+  settings: "/user-dashboard/settings",
+  insights: "/user-dashboard/insights",
+  tracking: "/user-dashboard?tab=tracking",
+};
+
+function getUserTabFromPath(pathname, fallback = "") {
+  const path = String(pathname || "");
+  if (path.startsWith("/my-orders") || path.startsWith("/order-details/")) return "orders";
+  if (path.startsWith("/my-reservations") || path.startsWith("/reservation/")) return "reservations";
+  const segment = path.split("/").filter(Boolean).pop();
+  if (allowedTabs.has(segment)) return segment;
+  return allowedTabs.has(fallback) ? fallback : "";
+}
 
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-US", {
@@ -368,8 +390,9 @@ function getTrackingMeta(order, now) {
 
 function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", detailReservationId = "" }) {
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
-  const requestedInitialTab = initialTabProp || searchParams.get("tab") || "";
+  const requestedInitialTab = getUserTabFromPath(location.pathname, initialTabProp) || searchParams.get("tab") || "";
   const initialTab = allowedTabs.has(requestedInitialTab) ? requestedInitialTab : "dashboard";
   const [activeItem, setActiveItem] = useState(initialTab);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -388,18 +411,23 @@ function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", de
   const normalizedDetailReservationId = String(detailReservationId || "").trim();
 
   useEffect(() => {
-    const tabParam = searchParams.get("tab") || "dashboard";
-    const tab = initialTabProp || (allowedTabs.has(tabParam) ? tabParam : "dashboard");
+    const pathTab = getUserTabFromPath(location.pathname, initialTabProp);
+    const tabParam = searchParams.get("tab") || "";
+    const tab = pathTab || (allowedTabs.has(tabParam) ? tabParam : "dashboard");
     if (tab !== activeItem) {
       setActiveItem(tab);
     }
-  }, [initialTabProp, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialTabProp, location.pathname, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetActiveItem = (tab) => {
+    if (!allowedTabs.has(tab)) return;
     setActiveItem(tab);
-    const params = new URLSearchParams(searchParams);
-    params.set("tab", tab);
-    setSearchParams(params, { replace: true });
+    const path = userPathByTab[tab] || "/user-dashboard";
+    if (path.includes("?")) {
+      navigate(path);
+      return;
+    }
+    navigate(path);
   };
 
   useEffect(() => {
@@ -1576,6 +1604,54 @@ function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", de
                 </p>
               </div>
             )}
+          </div>
+        </section>
+      );
+    }
+
+    if (activeItem === "profile") {
+      return (
+        <section className="db-card">
+          <div className="db-section-head">
+            <h2>Profile</h2>
+          </div>
+          <div className="db-settings-grid">
+            <article>
+              <h4>Name</h4>
+              <p>{user?.fullName || user?.username || "Guest"}</p>
+            </article>
+            <article>
+              <h4>Email</h4>
+              <p>{email || "Not available"}</p>
+            </article>
+            <article>
+              <h4>Orders</h4>
+              <p>{orders.length}</p>
+            </article>
+            <article>
+              <h4>Reservations</h4>
+              <p>{reservations.length}</p>
+            </article>
+          </div>
+        </section>
+      );
+    }
+
+    if (activeItem === "settings") {
+      return (
+        <section className="db-card">
+          <div className="db-section-head">
+            <h2>Settings</h2>
+          </div>
+          <div className="db-settings-grid">
+            <article>
+              <h4>Account</h4>
+              <p>{email || "Signed in customer"}</p>
+            </article>
+            <article>
+              <h4>Dashboard</h4>
+              <p>Your orders and reservations remain private to your account.</p>
+            </article>
           </div>
         </section>
       );

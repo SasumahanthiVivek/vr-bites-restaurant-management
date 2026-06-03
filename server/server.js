@@ -105,7 +105,7 @@ function accessDenied(res) {
   res.status(403).json(FORBIDDEN_BODY);
 }
 
-function authenticate(req, res, next) {
+async function authenticate(req, res, next) {
   const token = getBearerToken(req);
   const publicKey = getAuthPublicKey();
 
@@ -116,7 +116,17 @@ function authenticate(req, res, next) {
 
   try {
     const claims = jwt.verify(token, publicKey, { algorithms: ["RS256"] });
-    const email = getEmailFromClaims(claims);
+    let email = getEmailFromClaims(claims);
+
+    if (!email && claims.sub && db) {
+      const { users } = await getCollections();
+      const user = await users.findOne({ clerkId: claims.sub });
+      email = normalizeEmail(user?.email);
+    }
+
+    if (!email && claims.sub && req.body?.clerkId === claims.sub) {
+      email = normalizeEmail(req.body?.email);
+    }
 
     if (!email) {
       accessDenied(res);

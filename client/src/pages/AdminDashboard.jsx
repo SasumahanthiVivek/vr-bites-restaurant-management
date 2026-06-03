@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import {
@@ -31,6 +32,22 @@ const menuItems = [
   { key: "customers", label: "Customers", icon: Users },
   { key: "settings", label: "Settings", icon: Settings },
 ];
+
+const allowedTabs = new Set(menuItems.map((item) => item.key));
+const adminPathByTab = {
+  dashboard: "/admin-dashboard",
+  orders: "/admin/orders",
+  menu: "/admin/menu",
+  reservations: "/admin/reservations",
+  customers: "/admin/customers",
+  settings: "/admin/settings",
+};
+
+function getAdminTabFromPath(pathname, fallback = "dashboard") {
+  const segment = String(pathname || "").split("/").filter(Boolean).pop();
+  if (allowedTabs.has(segment)) return segment;
+  return allowedTabs.has(fallback) ? fallback : "dashboard";
+}
 
 /* ── Order status flow: only show statuses the admin can move TO ─ */
 const ORDER_STATUSES = ["PLACED", "CONFIRMED", "IN PROGRESS", "DELIVERED"];
@@ -154,14 +171,20 @@ function splitOrderId(orderId) {
   };
 }
 
-function AdminDashboard() {
+function AdminDashboard({ initialTab = "" }) {
   const { user } = useUser();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Navigation handler for sidebar and programmatic tab changes
-  const handleSetActiveItem = (item) => setActiveItem(item);
+  const handleSetActiveItem = (item) => {
+    if (!allowedTabs.has(item)) return;
+    setActiveItem(item);
+    navigate(adminPathByTab[item] || "/admin-dashboard", { replace: false });
+  };
 
   // Navigation state for dashboard tabs
-  const [activeItem, setActiveItem] = useState("dashboard");
+  const [activeItem, setActiveItem] = useState(() => getAdminTabFromPath(location.pathname, initialTab));
 
   // Sidebar open/close state
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -213,6 +236,13 @@ function AdminDashboard() {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    const nextTab = getAdminTabFromPath(location.pathname, initialTab);
+    if (nextTab !== activeItem) {
+      setActiveItem(nextTab);
+    }
+  }, [activeItem, initialTab, location.pathname]);
 
   useEffect(() => {
     const handlePointerDown = (event) => {

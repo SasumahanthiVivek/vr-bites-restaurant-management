@@ -33,6 +33,8 @@ function SyncSignedInUser() {
   const { getToken, isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
 
+  setApiAuthTokenProvider(() => getToken());
+
   useEffect(() => {
     setApiAuthTokenProvider(() => getToken());
     return () => setApiAuthTokenProvider(null);
@@ -113,12 +115,17 @@ function DashboardRedirect() {
   return <Navigate to={isAdminEmail(email) ? "/admin-dashboard" : "/user-dashboard"} replace />;
 }
 
-function AdminRouteAlias() {
+function AdminRouteAlias({ tab = "" }) {
   return (
     <ProtectedRoute requireAdmin>
-      <Navigate to="/admin-dashboard" replace />
+      <AdminDashboard initialTab={tab} />
     </ProtectedRoute>
   );
+}
+
+function AdminTabRoute() {
+  const { tab } = useParams();
+  return <AdminRouteAlias tab={tab} />;
 }
 
 function MyOrdersRoute() {
@@ -151,6 +158,15 @@ function ReservationDetailsRoute() {
   return (
     <ProtectedRoute requireUser>
       <UserDashboard initialTab="reservations" detailReservationId={id} />
+    </ProtectedRoute>
+  );
+}
+
+function UserTabRoute() {
+  const { tab } = useParams();
+  return (
+    <ProtectedRoute requireUser>
+      <UserDashboard initialTab={tab} />
     </ProtectedRoute>
   );
 }
@@ -198,6 +214,14 @@ function App() {
             }
           />
           <Route
+            path="/admin-dashboard/:tab"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminTabRoute />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/user-dashboard"
             element={
               <ProtectedRoute requireUser>
@@ -205,11 +229,13 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/user-dashboard/:tab" element={<UserTabRoute />} />
           <Route path="/my-orders" element={<MyOrdersRoute />} />
           <Route path="/order-details/:id" element={<OrderDetailsRoute />} />
           <Route path="/my-reservations" element={<MyReservationsRoute />} />
           <Route path="/reservation/:id" element={<ReservationDetailsRoute />} />
           <Route path="/admin" element={<AdminRouteAlias />} />
+          <Route path="/admin/:tab" element={<AdminTabRoute />} />
           <Route path="/admin/*" element={<AdminRouteAlias />} />
         </Route>
         <Route path="/sign-in" element={<SignInPage />} />
