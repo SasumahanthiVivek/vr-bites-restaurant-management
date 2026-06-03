@@ -213,12 +213,16 @@ function AdminDashboard({ initialTab = "" }) {
     setLoading(true);
     setError("");
     try {
+      const loadAdminData = (path, fallback) => apiRequest(path).catch((err) => {
+        console.error(`Admin dashboard request failed: ${path}`, err);
+        return fallback;
+      });
       const [orderData, menuData, reservationData, userData, statsData] = await Promise.all([
-        apiRequest("/api/orders"),
-        apiRequest("/api/menu"),
-        apiRequest("/api/reservations"),
-        apiRequest("/api/users").catch(() => []),
-        apiRequest("/api/dashboard/admin/stats").catch(() => null),
+        loadAdminData("/api/orders", []),
+        loadAdminData("/api/menu", []),
+        loadAdminData("/api/reservations", []),
+        loadAdminData("/api/users", []),
+        loadAdminData("/api/dashboard/admin/stats", null),
       ]);
 
       setOrders(Array.isArray(orderData) ? orderData : []);

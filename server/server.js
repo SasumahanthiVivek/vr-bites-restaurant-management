@@ -3,6 +3,7 @@ require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const { createPublicKey } = require("crypto");
 const { MongoClient, ObjectId } = require("mongodb");
 const Stripe = require("stripe");
 const { sendEmail, ADMIN_EMAIL } = require("./services/emailService.js");
@@ -15,6 +16,15 @@ const app = express();
 const port = Number(process.env.PORT || 5000);
 const mongoUri = process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/vrbites";
 // ADMIN_EMAIL now loaded from .env and emailService.js
+const REQUIRED_ENV_VARS = ["CLIENT_URL", "MONGODB_URI", "ADMIN_EMAIL", "CLERK_SECRET_KEY"];
+for (const name of REQUIRED_ENV_VARS) {
+  if (!process.env[name]) {
+    console.warn(`[ENV_WARNING] Missing ${name}. Some production features may be limited until it is configured.`);
+  }
+}
+if (!process.env.JWT_SECRET) {
+  console.warn("[ENV_WARNING] Missing JWT_SECRET. Clerk authentication is used for dashboard/API access.");
+}
 const VALID_ORDER_STATUSES = ["PLACED", "CONFIRMED", "IN PROGRESS", "DELIVERED", "CANCELLED"];
 const ORDER_STATUS_FLOW = {
   PLACED: ["PLACED", "CONFIRMED"],
@@ -41,10 +51,14 @@ function getRandomDeliveryPerson() {
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 if (!stripeSecretKey) {
-  throw new Error("Missing STRIPE_SECRET_KEY in environment variables.");
+  console.warn("[ENV_WARNING] Missing STRIPE_SECRET_KEY. Payment routes will return 503 instead of crashing the API.");
 }
 
-const stripe = new Stripe(stripeSecretKey);
+const stripe = stripeSecretKey ? new Stripe(stripeSecretKey) : null;
+
+function normalizeOrigin(origin = "") {
+  return String(origin || "").replace(/\/+$/, "");
+}
 
 app.use(
   cors({
@@ -54,16 +68,17 @@ app.use(
       const allowed = [
         process.env.CLIENT_URL,
         process.env.FRONTEND_URL,
+        "https://vr-bites-restaurant-management-edxy-5p9mnhp99.vercel.app",
         "http://localhost:5173",
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:5174",
-      ].filter(Boolean);
+      ].filter(Boolean).map(normalizeOrigin);
       // Allow any vercel.app subdomain for preview deployments
-      if (allowed.includes(origin) || /\.vercel\.app$/.test(origin)) {
+      if (allowed.includes(normalizeOrigin(origin)) || /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(origin)) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive for now; tighten in production
+      return callback(null, false);
     },
     credentials: true,
   })
@@ -72,12 +87,123 @@ app.use(express.json());
 
 const client = new MongoClient(mongoUri);
 let db;
+let dbConnectPromise = null;
 
 const FORBIDDEN_BODY = { success: false, message: "Access denied" };
+const jwksCache = new Map();
+const clerkUserEmailCache = new Map();
 
 function getAuthPublicKey() {
   const key = process.env.CLERK_JWT_KEY || process.env.CLERK_PEM_PUBLIC_KEY || process.env.JWT_PUBLIC_KEY || "";
   return key.replace(/\\n/g, "\n").trim();
+}
+
+function getJwtHeader(token) {
+  try {
+    const [header] = String(token || "").split(".");
+    return JSON.parse(Buffer.from(header, "base64url").toString("utf8"));
+  } catch (_error) {
+    return {};
+  }
+}
+
+function getJwtPayload(token) {
+  try {
+    const [, payload] = String(token || "").split(".");
+    return JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch (_error) {
+    return {};
+  }
+}
+
+async function getClerkJwks(issuer) {
+  const normalizedIssuer = String(issuer || "").replace(/\/+$/, "");
+  let issuerHost = "";
+  try {
+    issuerHost = new URL(normalizedIssuer).hostname;
+  } catch (_error) {
+    issuerHost = "";
+  }
+
+  if (
+    !issuerHost ||
+    (
+      !issuerHost.endsWith(".clerk.accounts.dev") &&
+      !issuerHost.startsWith("clerk.") &&
+      !issuerHost.includes(".clerk.")
+    )
+  ) {
+    throw new Error("Unsupported token issuer.");
+  }
+
+  const cached = jwksCache.get(normalizedIssuer);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.keys;
+  }
+
+  const response = await fetch(`${normalizedIssuer}/.well-known/jwks.json`);
+  if (!response.ok) {
+    throw new Error("Unable to load Clerk JWKS.");
+  }
+
+  const data = await response.json();
+  const keys = Array.isArray(data.keys) ? data.keys : [];
+  jwksCache.set(normalizedIssuer, { keys, expiresAt: Date.now() + 60 * 60 * 1000 });
+  return keys;
+}
+
+async function resolveVerificationKey(token) {
+  const configuredKey = getAuthPublicKey();
+  if (configuredKey) {
+    return configuredKey;
+  }
+
+  const header = getJwtHeader(token);
+  const payload = getJwtPayload(token);
+  const keys = await getClerkJwks(payload.iss);
+  const jwk = keys.find((key) => key.kid === header.kid);
+
+  if (!jwk) {
+    throw new Error("No matching Clerk signing key.");
+  }
+
+  return createPublicKey({ key: jwk, format: "jwk" }).export({ type: "spki", format: "pem" });
+}
+
+async function getClerkUserEmail(clerkId) {
+  const id = String(clerkId || "").trim();
+  if (!id || !process.env.CLERK_SECRET_KEY) {
+    return "";
+  }
+
+  const cached = clerkUserEmailCache.get(id);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.email;
+  }
+
+  const response = await fetch(`https://api.clerk.com/v1/users/${encodeURIComponent(id)}`, {
+    headers: {
+      Authorization: `Bearer ${process.env.CLERK_SECRET_KEY}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    return "";
+  }
+
+  const data = await response.json();
+  const primaryId = data.primary_email_address_id;
+  const primaryEmail = Array.isArray(data.email_addresses)
+    ? data.email_addresses.find((item) => item.id === primaryId)?.email_address || data.email_addresses[0]?.email_address
+    : "";
+  const email = normalizeEmail(primaryEmail);
+
+  if (email) {
+    clerkUserEmailCache.set(id, { email, expiresAt: Date.now() + 10 * 60 * 1000 });
+  }
+
+  return email;
 }
 
 function getBearerToken(req) {
@@ -107,16 +233,20 @@ function accessDenied(res) {
 
 async function authenticate(req, res, next) {
   const token = getBearerToken(req);
-  const publicKey = getAuthPublicKey();
 
-  if (!token || !publicKey) {
+  if (!token) {
     accessDenied(res);
     return;
   }
 
   try {
+    const publicKey = await resolveVerificationKey(token);
     const claims = jwt.verify(token, publicKey, { algorithms: ["RS256"] });
     let email = getEmailFromClaims(claims);
+
+    if (!email && claims.sub) {
+      email = await getClerkUserEmail(claims.sub);
+    }
 
     if (!email && claims.sub && db) {
       const { users } = await getCollections();
@@ -528,7 +658,29 @@ function validateOrderInput(order) {
   return "";
 }
 
+async function ensureDatabase() {
+  if (db) {
+    return db;
+  }
+
+  if (!dbConnectPromise) {
+    dbConnectPromise = client.connect()
+      .then(() => {
+        db = client.db();
+        return db;
+      })
+      .catch((error) => {
+        dbConnectPromise = null;
+        throw error;
+      });
+  }
+
+  return dbConnectPromise;
+}
+
 async function getCollections() {
+  await ensureDatabase();
+
   return {
     users: db.collection("users"),
     orders: db.collection("orders"),
@@ -697,6 +849,11 @@ app.post("/api/payments/create-intent", requireUser, async (req, res) => {
     return;
   }
 
+  if (!stripe) {
+    res.status(503).json({ error: "Payment service is not configured. Please add STRIPE_SECRET_KEY to server .env." });
+    return;
+  }
+
   try {
     const amountInCents = Math.round(order.totalPrice * 100);
     console.log("[PAYMENT_DEBUG] Creating payment intent:", { amount: amountInCents, currency: "usd" });
@@ -739,6 +896,11 @@ app.post("/api/orders/complete-payment", requireUser, async (req, res) => {
 
   if (!paymentIntentId) {
     res.status(400).json({ error: "paymentIntentId is required." });
+    return;
+  }
+
+  if (!stripe) {
+    res.status(503).json({ error: "Payment service is not configured. Please add STRIPE_SECRET_KEY to server .env." });
     return;
   }
 
@@ -1277,6 +1439,10 @@ app.post("/api/reservations", requireUser, async (req, res) => {
   try {
     const { reservations } = await getCollections();
     if (document.paymentIntentId) {
+      if (!stripe) {
+        res.status(503).json({ error: "Payment service is not configured. Please add STRIPE_SECRET_KEY to server .env." });
+        return;
+      }
       const paymentIntent = await stripe.paymentIntents.retrieve(document.paymentIntentId);
       if (paymentIntent.status !== "succeeded") {
         res.status(400).json({ error: "Reservation payment has not succeeded yet." });
@@ -1462,10 +1628,20 @@ app.get("/api/dashboard/admin/stats", requireAdmin, async (_req, res) => {
   }
 });
 
+app.use((err, _req, res, _next) => {
+  console.error("[SERVER_ERROR]", err?.message || err);
+  if (res.headersSent) {
+    return;
+  }
+  res.status(err?.status || 500).json({
+    success: false,
+    message: err?.message || "Internal server error",
+  });
+});
+
 async function startServer() {
   try {
-    await client.connect();
-    db = client.db();
+    await ensureDatabase();
 
     // Keep dashboard/order queries fast when traffic grows.
     const { orders, users, newsletterSubscribers } = await getCollections();
@@ -1483,7 +1659,7 @@ async function startServer() {
 }
   } catch (error) {
     console.error("Failed to start server:", error);
-    process.exit(1);
+    db = null;
   }
 }
 
