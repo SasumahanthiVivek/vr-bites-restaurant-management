@@ -33,21 +33,10 @@ const menuItems = [
   { key: "dashboard", label: "My Dashboard", icon: LayoutDashboard },
   { key: "orders", label: "My Orders", icon: ShoppingBag },
   { key: "reservations", label: "My Reservations", icon: CalendarCheck2 },
-  { key: "profile", label: "Profile", icon: UserCircle },
-  { key: "settings", label: "Settings", icon: Settings },
   { key: "insights", label: "Insights", icon: Sparkles },
 ];
 
 const allowedTabs = new Set([...menuItems.map((item) => item.key), "tracking"]);
-const userPathByTab = {
-  dashboard: "/user-dashboard",
-  orders: "/my-orders",
-  reservations: "/my-reservations",
-  profile: "/user-dashboard/profile",
-  settings: "/user-dashboard/settings",
-  insights: "/user-dashboard/insights",
-  tracking: "/user-dashboard?tab=tracking",
-};
 
 function getUserTabFromPath(pathname, fallback = "") {
   const path = String(pathname || "");
@@ -410,24 +399,11 @@ function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", de
   const normalizedDetailOrderId = String(detailOrderId || "").trim();
   const normalizedDetailReservationId = String(detailReservationId || "").trim();
 
-  useEffect(() => {
-    const pathTab = getUserTabFromPath(location.pathname, initialTabProp);
-    const tabParam = searchParams.get("tab") || "";
-    const tab = pathTab || (allowedTabs.has(tabParam) ? tabParam : "dashboard");
-    if (tab !== activeItem) {
-      setActiveItem(tab);
-    }
-  }, [initialTabProp, location.pathname, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  
 
   const handleSetActiveItem = (tab) => {
     if (!allowedTabs.has(tab)) return;
     setActiveItem(tab);
-    const path = userPathByTab[tab] || "/user-dashboard";
-    if (path.includes("?")) {
-      navigate(path);
-      return;
-    }
-    navigate(path);
   };
 
   useEffect(() => {
@@ -582,7 +558,19 @@ function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", de
       { label: "My Reservations", value: reservations.length, icon: <CalendarCheck2 size={20} />, tone: "peach" },
       {
         label: "Total Spent",
-        value: formatCurrency(orders.reduce((sum, order) => sum + Number(order.totalPrice || 0), 0)),
+        value: formatCurrency(
+          orders
+            .filter((order) => {
+              const status = normalizeOrderStatus(order.orderStatus || order.status);
+              const paymentStatus = String(order.paymentStatus || "").trim().toLowerCase();
+              return status === "DELIVERED" || paymentStatus === "paid";
+            })
+            .reduce((sum, order) => sum + Number(order.totalPrice || 0), 0)
+          +
+          reservations
+            .filter((r) => String(r.paymentStatus || "").trim().toLowerCase() === "paid")
+            .reduce((sum, r) => sum + Number(r.depositAmount || 0), 0)
+        ),
         icon: <ListOrdered size={20} />,
         tone: "sand",
       },

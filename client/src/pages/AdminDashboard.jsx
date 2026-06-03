@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { useUser } from "@clerk/clerk-react";
 import toast from "react-hot-toast";
 import {
@@ -34,14 +34,6 @@ const menuItems = [
 ];
 
 const allowedTabs = new Set(menuItems.map((item) => item.key));
-const adminPathByTab = {
-  dashboard: "/admin-dashboard",
-  orders: "/admin/orders",
-  menu: "/admin/menu",
-  reservations: "/admin/reservations",
-  customers: "/admin/customers",
-  settings: "/admin/settings",
-};
 
 function getAdminTabFromPath(pathname, fallback = "dashboard") {
   const segment = String(pathname || "").split("/").filter(Boolean).pop();
@@ -174,13 +166,11 @@ function splitOrderId(orderId) {
 function AdminDashboard({ initialTab = "" }) {
   const { user } = useUser();
   const location = useLocation();
-  const navigate = useNavigate();
 
-  // Navigation handler for sidebar and programmatic tab changes
+  // Navigation handler for sidebar tab changes — state only, no URL navigation
   const handleSetActiveItem = (item) => {
     if (!allowedTabs.has(item)) return;
     setActiveItem(item);
-    navigate(adminPathByTab[item] || "/admin-dashboard", { replace: false });
   };
 
   // Navigation state for dashboard tabs
@@ -241,12 +231,7 @@ function AdminDashboard({ initialTab = "" }) {
     fetchAllData();
   }, []);
 
-  useEffect(() => {
-    const nextTab = getAdminTabFromPath(location.pathname, initialTab);
-    if (nextTab !== activeItem) {
-      setActiveItem(nextTab);
-    }
-  }, [activeItem, initialTab, location.pathname]);
+  
 
   useEffect(() => {
     const handlePointerDown = (event) => {
@@ -282,7 +267,22 @@ function AdminDashboard({ initialTab = "" }) {
   }, [customers, orders, reservations]);
 
   const statsCards = useMemo(() => {
-    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.totalPrice || Number(order.price || 0) * Number(order.quantity || 1)), 0);
+    const paidOrderRevenue = stats?.totalRevenue != null
+      ? Number(stats.totalRevenue)
+      : orders
+          .filter((order) => {
+            const status = String(order.orderStatus || order.status || "").trim().toUpperCase();
+            const normalized = status === "COMPLETED" ? "DELIVERED" : status;
+            const paymentStatus = String(order.paymentStatus || "").trim().toLowerCase();
+            return normalized === "DELIVERED" || paymentStatus === "paid";
+          })
+          .reduce((sum, order) => sum + Number(order.totalPrice || Number(order.price || 0) * Number(order.quantity || 1)), 0);
+
+    const paidReservationRevenue = reservations
+      .filter((r) => String(r.paymentStatus || "").trim().toLowerCase() === "paid")
+      .reduce((sum, r) => sum + Number(r.depositAmount || 0), 0);
+
+    const totalRevenue = paidOrderRevenue + paidReservationRevenue;
     const reservationStats = stats?.reservations;
     const reservationCount = typeof reservationStats === "object" && reservationStats !== null
       ? Number(reservationStats.paid || 0) + Number(reservationStats.pending || 0) + Number(reservationStats.confirmed || 0) + Number(reservationStats.cancelled || 0)

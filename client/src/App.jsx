@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useSearchParams } from "react-router-dom";
 import { SignIn, useAuth, useUser } from "@clerk/clerk-react";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -115,58 +115,35 @@ function DashboardRedirect() {
   return <Navigate to={isAdminEmail(email) ? "/admin-dashboard" : "/user-dashboard"} replace />;
 }
 
-function AdminRouteAlias({ tab = "" }) {
+// Single persistent AdminDashboard wrapper — reads initial tab from URL once on mount.
+// All sidebar navigation is pure state; no URL changes, no remounts.
+function AdminDashboardRoute() {
+  const location = useLocation();
   return (
     <ProtectedRoute requireAdmin>
-      <AdminDashboard initialTab={tab} />
+      <AdminDashboard initialTab={location.pathname} />
     </ProtectedRoute>
   );
 }
 
-function AdminTabRoute() {
-  const { tab } = useParams();
-  return <AdminRouteAlias tab={tab} />;
-}
+// Single persistent UserDashboard wrapper — reads initial tab + detail IDs from URL once on mount.
+// All sidebar navigation is pure state; no URL changes, no remounts.
+function UserDashboardRoute() {
+  const location = useLocation();
+  // Extract detailOrderId from /order-details/:id
+  const orderDetailMatch = location.pathname.match(/^\/order-details\/(.+)$/);
+  const detailOrderId = orderDetailMatch ? orderDetailMatch[1] : "";
+  // Extract detailReservationId from /reservation/:id
+  const reservationDetailMatch = location.pathname.match(/^\/reservation\/(.+)$/);
+  const detailReservationId = reservationDetailMatch ? reservationDetailMatch[1] : "";
 
-function MyOrdersRoute() {
   return (
     <ProtectedRoute requireUser>
-      <UserDashboard initialTab="orders" />
-    </ProtectedRoute>
-  );
-}
-
-function OrderDetailsRoute() {
-  const { id } = useParams();
-  return (
-    <ProtectedRoute requireUser>
-      <UserDashboard initialTab="orders" detailOrderId={id} />
-    </ProtectedRoute>
-  );
-}
-
-function MyReservationsRoute() {
-  return (
-    <ProtectedRoute requireUser>
-      <UserDashboard initialTab="reservations" />
-    </ProtectedRoute>
-  );
-}
-
-function ReservationDetailsRoute() {
-  const { id } = useParams();
-  return (
-    <ProtectedRoute requireUser>
-      <UserDashboard initialTab="reservations" detailReservationId={id} />
-    </ProtectedRoute>
-  );
-}
-
-function UserTabRoute() {
-  const { tab } = useParams();
-  return (
-    <ProtectedRoute requireUser>
-      <UserDashboard initialTab={tab} />
+      <UserDashboard
+        initialTab={location.pathname}
+        detailOrderId={detailOrderId}
+        detailReservationId={detailReservationId}
+      />
     </ProtectedRoute>
   );
 }
@@ -197,46 +174,22 @@ function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsConditions />} />
-          <Route
-            path="/admin-dashboard"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard/*"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin-dashboard/:tab"
-            element={
-              <ProtectedRoute requireAdmin>
-                <AdminTabRoute />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/user-dashboard"
-            element={
-              <ProtectedRoute requireUser>
-                <UserDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/user-dashboard/:tab" element={<UserTabRoute />} />
-          <Route path="/my-orders" element={<MyOrdersRoute />} />
-          <Route path="/order-details/:id" element={<OrderDetailsRoute />} />
-          <Route path="/my-reservations" element={<MyReservationsRoute />} />
-          <Route path="/reservation/:id" element={<ReservationDetailsRoute />} />
-          <Route path="/admin" element={<AdminRouteAlias />} />
-          <Route path="/admin/:tab" element={<AdminTabRoute />} />
-          <Route path="/admin/*" element={<AdminRouteAlias />} />
+
+          {/* ── Admin Dashboard: single catch-all, one persistent instance ── */}
+          <Route path="/admin-dashboard" element={<AdminDashboardRoute />} />
+          <Route path="/admin-dashboard/*" element={<AdminDashboardRoute />} />
+          <Route path="/admin" element={<AdminDashboardRoute />} />
+          <Route path="/admin/*" element={<AdminDashboardRoute />} />
+
+          {/* ── User Dashboard: single catch-all, one persistent instance ── */}
+          <Route path="/user-dashboard" element={<UserDashboardRoute />} />
+          <Route path="/user-dashboard/*" element={<UserDashboardRoute />} />
+          <Route path="/my-orders" element={<UserDashboardRoute />} />
+          <Route path="/my-orders/*" element={<UserDashboardRoute />} />
+          <Route path="/my-reservations" element={<UserDashboardRoute />} />
+          <Route path="/my-reservations/*" element={<UserDashboardRoute />} />
+          <Route path="/order-details/:id" element={<UserDashboardRoute />} />
+          <Route path="/reservation/:id" element={<UserDashboardRoute />} />
         </Route>
         <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/dashboard" element={<DashboardRedirect />} />
