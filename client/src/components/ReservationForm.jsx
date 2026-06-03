@@ -62,6 +62,7 @@ function ReservationDetailsForm({
   onDateChange,
   onTimeChange,
   loadingTables,
+  availabilityChecked,
   conflictWarning,
 }) {
   const guestCount = Number(formData.guests) || 0;
@@ -219,7 +220,7 @@ function ReservationDetailsForm({
                       ? "Loading tables..."
                       : !formData.date || !formData.time
                       ? "Select date & time first"
-                      : availableTables.length === 0
+                      : availabilityChecked && availableTables.length === 0
                       ? "No tables available"
                       : "Select table"}
                   </option>
@@ -229,8 +230,8 @@ function ReservationDetailsForm({
                 </select>
               </div>
               {errors.tableNumber ? <p className="reservation-error mb-0">{errors.tableNumber}</p> : null}
-              {availableTables.length === 0 && !loadingTables && formData.date && formData.time && (
-                <div className="reservation-error mt-1">No tables available for this slot.</div>
+              {availabilityChecked && availableTables.length === 0 && !loadingTables && formData.date && formData.time && (
+                <div className="reservation-error mt-1">No Tables Available For Selected Time</div>
               )}
               {/* Conflict warning shown inline under table selector */}
               {conflictWarning && (
@@ -428,6 +429,7 @@ function ReservationFormInner() {
   // Available tables fetched from API (already filters out booked ones)
   const [availableTables, setAvailableTables] = useState([]);
   const [loadingTables, setLoadingTables] = useState(false);
+  const [availabilityChecked, setAvailabilityChecked] = useState(false);
 
   // Inline conflict warning for the currently-selected table
   const [conflictWarning, setConflictWarning] = useState("");
@@ -459,25 +461,30 @@ function ReservationFormInner() {
     const fetchTables = async () => {
       if (!formData.date || !formData.time) {
         setAvailableTables([]);
+        setAvailabilityChecked(false);
         setConflictWarning("");
         return;
       }
       setLoadingTables(true);
+      setAvailabilityChecked(false);
       setConflictWarning("");
       try {
         const res = await apiRequest(
-          `/api/reservations/available-tables?date=${formData.date}&time=${formData.time}`
+          `/api/reservations/available-tables?date=${encodeURIComponent(formData.date)}&time=${encodeURIComponent(formData.time)}&guests=${encodeURIComponent(formData.guests || "")}`
         );
-        const tables = res.tables || [];
+        const tables = (res.tables || []).map((table) => String(table));
         setAvailableTables(tables);
+        setAvailabilityChecked(true);
 
         // If the currently-selected table is no longer available, clear it and warn
-        if (formData.tableNumber && !tables.includes(Number(formData.tableNumber)) && !tables.includes(String(formData.tableNumber))) {
+        if (formData.tableNumber && !tables.includes(String(formData.tableNumber))) {
           setFormData((prev) => ({ ...prev, tableNumber: "" }));
-          setConflictWarning("Selected table is already reserved for this date and time. Please choose another table or select a different time slot.");
+          setConflictWarning("Selected table is already reserved. Please choose another table.");
         }
-      } catch {
+      } catch (err) {
         setAvailableTables([]);
+        setAvailabilityChecked(false);
+        setConflictWarning(err.message || "Unable to check table availability. Please try again.");
       } finally {
         setLoadingTables(false);
       }
@@ -489,17 +496,15 @@ function ReservationFormInner() {
   useEffect(() => {
     if (!formData.tableNumber) return;
     const tableNum = formData.tableNumber;
-    const isAvailable =
-      availableTables.includes(Number(tableNum)) ||
-      availableTables.includes(String(tableNum));
+    const isAvailable = availableTables.includes(String(tableNum));
     if (isAvailable) {
       setConflictWarning("");
-    } else if (availableTables.length > 0) {
+    } else if (availabilityChecked) {
       setConflictWarning(
-        "Table already booked by another guest. Please select a different table, date, or time."
+        "Selected table is already reserved. Please choose another table."
       );
     }
-  }, [formData.tableNumber, availableTables]);
+  }, [formData.tableNumber, availableTables, availabilityChecked]);
 
   const minDate = useMemo(() => {
     const now = new Date();
@@ -569,21 +574,19 @@ function ReservationFormInner() {
     try {
       // Final server-side conflict check before creating payment intent
       const checkRes = await apiRequest(
-        `/api/reservations/available-tables?date=${formData.date}&time=${formData.time}`
+        `/api/reservations/available-tables?date=${encodeURIComponent(formData.date)}&time=${encodeURIComponent(formData.time)}&guests=${encodeURIComponent(formData.guests || "")}`
       );
-      const currentlyAvailable = checkRes.tables || [];
+      const currentlyAvailable = (checkRes.tables || []).map((table) => String(table));
       const tableNum = formData.tableNumber;
-      const stillAvailable =
-        currentlyAvailable.includes(Number(tableNum)) ||
-        currentlyAvailable.includes(String(tableNum));
+      const stillAvailable = currentlyAvailable.includes(String(tableNum));
 
       if (!stillAvailable) {
         setConflictWarning(
-          "Selected table is already reserved for this date and time. Please choose another table or select a different time slot."
+          "Selected table is already reserved. Please choose another table."
         );
         setErrors((prev) => ({
           ...prev,
-          tableNumber: "This table is no longer available. Please pick another.",
+          tableNumber: "Selected table is already reserved. Please choose another table.",
         }));
         setIsValidating(false);
         return;
@@ -670,6 +673,7 @@ function ReservationFormInner() {
       minDate={minDate}
       availableTables={availableTables}
       loadingTables={loadingTables}
+      availabilityChecked={availabilityChecked}
       timeSlots={timeSlots}
       onDateChange={handleDateChange}
       onTimeChange={handleTimeChange}

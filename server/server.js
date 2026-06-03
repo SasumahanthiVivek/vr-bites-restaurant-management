@@ -26,6 +26,8 @@ if (!process.env.JWT_SECRET) {
   console.warn("[ENV_WARNING] Missing JWT_SECRET. Clerk authentication is used for dashboard/API access.");
 }
 const VALID_ORDER_STATUSES = ["PLACED", "CONFIRMED", "IN PROGRESS", "DELIVERED", "CANCELLED"];
+const RESTAURANT_TABLE_COUNT = Math.max(1, Number(process.env.RESTAURANT_TABLE_COUNT || 10));
+const BLOCKING_RESERVATION_STATUSES = new Set(["pending", "confirmed", "reserved", "in progress"]);
 const ORDER_STATUS_FLOW = {
   PLACED: ["PLACED", "CONFIRMED"],
   CONFIRMED: ["CONFIRMED", "IN PROGRESS"],
@@ -556,6 +558,74 @@ function normalizeEmail(email) {
 function toPositiveNumber(value) {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function normalizeReservationStatus(status) {
+  return String(status || "Pending").trim().toLowerCase();
+}
+
+function isBlockingReservation(reservation = {}) {
+  const status = normalizeReservationStatus(reservation.reservationStatus || reservation.status);
+  return BLOCKING_RESERVATION_STATUSES.has(status);
+}
+
+function normalizeTableNumber(value) {
+  return String(value || "").replace(/^table\s*/i, "").trim();
+}
+
+function normalizeReservationDateValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) return raw;
+  return parsed.toISOString().slice(0, 10);
+}
+
+function normalizeReservationTimeValue(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const compact = raw.toLowerCase().replace(/\s+/g, " ");
+  const meridiemMatch = compact.match(/^(\d{1,2})(?::(\d{2}))?\s*(am|pm)$/);
+  if (meridiemMatch) {
+    let hours = Number(meridiemMatch[1]);
+    const minutes = Number(meridiemMatch[2] || 0);
+    const meridiem = meridiemMatch[3];
+    if (meridiem === "pm" && hours < 12) hours += 12;
+    if (meridiem === "am" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+
+  const twentyFourHourMatch = compact.match(/^(\d{1,2}):(\d{2})/);
+  if (twentyFourHourMatch) {
+    return `${String(Number(twentyFourHourMatch[1])).padStart(2, "0")}:${twentyFourHourMatch[2]}`;
+  }
+
+  return compact;
+}
+
+function buildRestaurantTables() {
+  return Array.from({ length: RESTAURANT_TABLE_COUNT }, (_item, index) => String(index + 1));
+}
+
+async function getReservedTablesForSlot(reservations, date, time) {
+  const selectedDate = normalizeReservationDateValue(date);
+  const selectedTime = normalizeReservationTimeValue(time);
+  const records = await reservations.find({
+    tableNumber: { $exists: true, $ne: "" },
+  }).toArray();
+
+  return new Set(
+    records
+      .filter((reservation) => {
+        const recordDate = normalizeReservationDateValue(reservation.date || reservation.reservationDate);
+        const recordTime = normalizeReservationTimeValue(reservation.time || reservation.reservationTime);
+        return recordDate === selectedDate && recordTime === selectedTime && isBlockingReservation(reservation);
+      })
+      .map((reservation) => normalizeTableNumber(reservation.tableNumber))
+      .filter(Boolean)
+  );
 }
 
 function withObjectId(id) {
@@ -1297,20 +1367,14 @@ app.get("/api/reservations/available-tables", async (req, res) => {
       return;
     }
     const { reservations } = await getCollections();
-    // Assume 20 tables, numbered 1-20
-    const allTables = Array.from({ length: 20 }, (_, i) => (i + 1).toString());
-    // Find reservations for this date and time with active blocking statuses
-    const reserved = await reservations.find({
-      date,
-      time,
-      $or: [
-        { status: { $in: ["Pending", "PENDING", "Confirmed", "CONFIRMED", "pending", "confirmed"] } },
-        { reservationStatus: { $in: ["Pending", "PENDING", "Confirmed", "CONFIRMED", "pending", "confirmed"] } },
-      ],
-    }).toArray();
-    const reservedTables = reserved.map(r => String(r.tableNumber));
-    const available = allTables.filter(t => !reservedTables.includes(t));
-    res.json({ tables: available });
+    const allTables = buildRestaurantTables();
+    const reservedTables = await getReservedTablesForSlot(reservations, date, time);
+    const available = allTables.filter((table) => !reservedTables.has(table));
+    res.json({
+      tables: available,
+      reservedTables: Array.from(reservedTables),
+      totalTables: allTables.length,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1432,12 +1496,33 @@ app.post("/api/reservations", requireUser, async (req, res) => {
     return;
   }
 
+  if (!document.tableNumber) {
+    res.status(400).json({ error: "Table number is required." });
+    return;
+  }
+
   if (!ensureSameUserEmail(req, res, document.email)) {
     return;
   }
 
   try {
     const { reservations } = await getCollections();
+    const selectedTable = normalizeTableNumber(document.tableNumber);
+    const allTables = buildRestaurantTables();
+
+    if (!allTables.includes(selectedTable)) {
+      res.status(400).json({ error: "Invalid table number." });
+      return;
+    }
+
+    const reservedTables = await getReservedTablesForSlot(reservations, document.date, document.time);
+    if (reservedTables.has(selectedTable)) {
+      res.status(409).json({ error: "Selected table is already reserved. Please choose another table." });
+      return;
+    }
+
+    document.tableNumber = selectedTable;
+
     if (document.paymentIntentId) {
       if (!stripe) {
         res.status(503).json({ error: "Payment service is not configured. Please add STRIPE_SECRET_KEY to server .env." });
