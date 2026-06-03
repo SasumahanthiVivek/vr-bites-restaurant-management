@@ -35,6 +35,8 @@ module.exports = (data = {}) => {
   const status = String(data.reservationStatus || data.status || 'PENDING').toUpperCase();
   const cfg = config[status] || config.PENDING;
   const reservationId = data.reservationId ? `Reservation #${data.reservationId}` : 'Reservation pending';
+  const reservationDetailId = data._id?.toString?.() || data.id || '';
+  const reservationLink = reservationDetailId ? `${appUrl}/reservation/${reservationDetailId}` : `${appUrl}/my-reservations`;
 
   return layout(cfg.title, `
     ${hero({
@@ -64,7 +66,7 @@ module.exports = (data = {}) => {
       ['Stripe Payment ID', data.paymentIntentId],
       ['Currency', 'USD'],
     ]) : ''}
-    ${button(status === 'DECLINED' || status === 'CANCELLED' ? 'Book Another Table' : 'View Reservation', `${appUrl}/user-dashboard?tab=reservations`, cfg.tone)}
+    ${button(status === 'DECLINED' || status === 'CANCELLED' ? 'Book Another Table' : 'View Reservation', status === 'DECLINED' || status === 'CANCELLED' ? `${appUrl}/book-table` : reservationLink, cfg.tone)}
     ${contactCard()}
   `);
 };

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Navigate, Route, Routes, useSearchParams } from "react-router-dom";
+import { Navigate, Route, Routes, useParams, useSearchParams } from "react-router-dom";
 import { SignIn, useAuth, useUser } from "@clerk/clerk-react";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -19,11 +19,24 @@ import Careers from "./pages/Careers";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsConditions from "./pages/TermsConditions";
 import { isAdminEmail } from "./auth/authLogic";
-import { apiRequest } from "./apiClient";
+import { apiRequest, setApiAuthTokenProvider } from "./apiClient";
+
+function getSafeRedirect(value) {
+  const redirect = String(value || "").trim();
+  if (!redirect.startsWith("/") || redirect.startsWith("//")) {
+    return "";
+  }
+  return redirect;
+}
 
 function SyncSignedInUser() {
-  const { isSignedIn, isLoaded } = useAuth();
+  const { getToken, isSignedIn, isLoaded } = useAuth();
   const { user } = useUser();
+
+  useEffect(() => {
+    setApiAuthTokenProvider(() => getToken());
+    return () => setApiAuthTokenProvider(null);
+  }, [getToken]);
 
   useEffect(() => {
     if (!isLoaded || !isSignedIn || !user) {
@@ -56,16 +69,19 @@ function SyncSignedInUser() {
 function SignInPage() {
   const [searchParams] = useSearchParams();
   const { isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
 
   if (!isLoaded) {
     return null;
   }
 
   if (isSignedIn) {
-    return <Navigate to="/" replace />;
+    const email = user?.primaryEmailAddress?.emailAddress || "";
+    const redirectTo = getSafeRedirect(searchParams.get("redirect"));
+    return <Navigate to={redirectTo || (isAdminEmail(email) ? "/admin-dashboard" : "/user-dashboard")} replace />;
   }
 
-  const redirectTo = searchParams.get("redirect") || "/";
+  const redirectTo = getSafeRedirect(searchParams.get("redirect")) || "/";
 
   return (
     <main className="page-shell dashboard-shell">
@@ -95,6 +111,48 @@ function DashboardRedirect() {
 
   const email = user?.primaryEmailAddress?.emailAddress || "";
   return <Navigate to={isAdminEmail(email) ? "/admin-dashboard" : "/user-dashboard"} replace />;
+}
+
+function AdminRouteAlias() {
+  return (
+    <ProtectedRoute requireAdmin>
+      <Navigate to="/admin-dashboard" replace />
+    </ProtectedRoute>
+  );
+}
+
+function MyOrdersRoute() {
+  return (
+    <ProtectedRoute requireUser>
+      <UserDashboard initialTab="orders" />
+    </ProtectedRoute>
+  );
+}
+
+function OrderDetailsRoute() {
+  const { id } = useParams();
+  return (
+    <ProtectedRoute requireUser>
+      <UserDashboard initialTab="orders" detailOrderId={id} />
+    </ProtectedRoute>
+  );
+}
+
+function MyReservationsRoute() {
+  return (
+    <ProtectedRoute requireUser>
+      <UserDashboard initialTab="reservations" />
+    </ProtectedRoute>
+  );
+}
+
+function ReservationDetailsRoute() {
+  const { id } = useParams();
+  return (
+    <ProtectedRoute requireUser>
+      <UserDashboard initialTab="reservations" detailReservationId={id} />
+    </ProtectedRoute>
+  );
 }
 
 function App() {
@@ -132,6 +190,14 @@ function App() {
             }
           />
           <Route
+            path="/admin-dashboard/*"
+            element={
+              <ProtectedRoute requireAdmin>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/user-dashboard"
             element={
               <ProtectedRoute requireUser>
@@ -139,6 +205,12 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/my-orders" element={<MyOrdersRoute />} />
+          <Route path="/order-details/:id" element={<OrderDetailsRoute />} />
+          <Route path="/my-reservations" element={<MyReservationsRoute />} />
+          <Route path="/reservation/:id" element={<ReservationDetailsRoute />} />
+          <Route path="/admin" element={<AdminRouteAlias />} />
+          <Route path="/admin/*" element={<AdminRouteAlias />} />
         </Route>
         <Route path="/sign-in" element={<SignInPage />} />
         <Route path="/dashboard" element={<DashboardRedirect />} />

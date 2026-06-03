@@ -2,6 +2,7 @@
 require("dotenv").config();
 const cors = require("cors");
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const { MongoClient, ObjectId } = require("mongodb");
 const Stripe = require("stripe");
 const { sendEmail, ADMIN_EMAIL } = require("./services/emailService.js");
@@ -71,6 +72,99 @@ app.use(express.json());
 
 const client = new MongoClient(mongoUri);
 let db;
+
+const FORBIDDEN_BODY = { success: false, message: "Access denied" };
+
+function getAuthPublicKey() {
+  const key = process.env.CLERK_JWT_KEY || process.env.CLERK_PEM_PUBLIC_KEY || process.env.JWT_PUBLIC_KEY || "";
+  return key.replace(/\\n/g, "\n").trim();
+}
+
+function getBearerToken(req) {
+  const header = String(req.headers.authorization || "");
+  const [scheme, token] = header.split(" ");
+  return /^Bearer$/i.test(scheme) && token ? token.trim() : "";
+}
+
+function getEmailFromClaims(claims = {}) {
+  const candidates = [
+    claims.email,
+    claims.email_address,
+    claims.primary_email_address,
+    claims.primaryEmailAddress,
+    claims["https://clerk.com/email"],
+  ];
+  return normalizeEmail(candidates.find(Boolean));
+}
+
+function getRoleForEmail(email) {
+  return normalizeEmail(email) === normalizeEmail(ADMIN_EMAIL) ? "ADMIN" : "USER";
+}
+
+function accessDenied(res) {
+  res.status(403).json(FORBIDDEN_BODY);
+}
+
+function authenticate(req, res, next) {
+  const token = getBearerToken(req);
+  const publicKey = getAuthPublicKey();
+
+  if (!token || !publicKey) {
+    accessDenied(res);
+    return;
+  }
+
+  try {
+    const claims = jwt.verify(token, publicKey, { algorithms: ["RS256"] });
+    const email = getEmailFromClaims(claims);
+
+    if (!email) {
+      accessDenied(res);
+      return;
+    }
+
+    req.auth = {
+      claims,
+      email,
+      role: getRoleForEmail(email),
+    };
+    next();
+  } catch (_error) {
+    accessDenied(res);
+  }
+}
+
+function requireAdmin(req, res, next) {
+  authenticate(req, res, () => {
+    if (req.auth?.role !== "ADMIN") {
+      accessDenied(res);
+      return;
+    }
+    next();
+  });
+}
+
+function requireUser(req, res, next) {
+  authenticate(req, res, () => {
+    if (req.auth?.role !== "USER") {
+      accessDenied(res);
+      return;
+    }
+    next();
+  });
+}
+
+function ensureSameUserEmail(req, res, email) {
+  if (normalizeEmail(req.auth?.email) !== normalizeEmail(email)) {
+    accessDenied(res);
+    return false;
+  }
+  return true;
+}
+
+function getRecordOwnerEmail(record = {}, type = "order") {
+  return type === "reservation" ? normalizeEmail(record.email) : normalizeEmail(record.userEmail);
+}
 
 function formatUSD(value) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(value || 0));
@@ -218,13 +312,14 @@ async function notifyReservationStatusChanged(reservation = {}) {
 async function notifyOrderPlaced(order = {}) {
   if (!order.userEmail) return { emailStatus: "skipped", emailMessage: "No order email available." };
   const appUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || "https://vrbites.com";
+  const orderDetailId = order._id?.toString?.() || order.id || "";
   const orderData = {
     customerName: order.customerName,
     orderId: order.orderId,
     items: [{ name: order.foodName || order.foodItem, qty: order.quantity, price: order.price }],
     total: order.totalPrice,
     status: order.orderStatus || order.status,
-    orderLink: appUrl + "/user-dashboard?tab=orders",
+    orderLink: orderDetailId ? `${appUrl}/order-details/${orderDetailId}` : `${appUrl}/my-orders`,
   };
   console.log("[ORDER_STATUS] notifyOrderPlaced:", { orderId: order.orderId, email: order.userEmail });
   const customerResult = await fireAndForgetEmail({
@@ -293,13 +388,16 @@ async function notifyOrderStatusChanged(order = {}, status = "") {
     CANCELLED: "Your Order Has Been Cancelled - VR BITES",
   };
   const template = templateByStatus[status] || "orderSuccessTemplate";
+  const orderDetailId = order._id?.toString?.() || order.id || "";
   const orderData = {
     customerName: order.customerName,
     orderId: order.orderId,
     items: [{ name: order.foodName || order.foodItem, qty: order.quantity, price: order.price }],
     total: order.totalPrice,
     status,
-    orderLink: (process.env.CLIENT_URL || process.env.FRONTEND_URL || "https://vrbites.com") + "/user-dashboard?tab=orders",
+    orderLink: orderDetailId
+      ? `${process.env.CLIENT_URL || process.env.FRONTEND_URL || "https://vrbites.com"}/order-details/${orderDetailId}`
+      : `${process.env.CLIENT_URL || process.env.FRONTEND_URL || "https://vrbites.com"}/my-orders`,
   };
   console.log("[ORDER_STATUS] notifyOrderStatusChanged:", { orderId: order.orderId, email: order.userEmail, status, template });
   return fireAndForgetEmail({
@@ -513,12 +611,28 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.post("/api/users/sync", async (req, res) => {
+app.use(/^\/api\/admin(\/.*)?$/, requireAdmin, (_req, res) => {
+  res.status(404).json({ success: false, message: "Admin API route not found" });
+});
+
+app.use(/^\/admin(\/.*)?$/, requireAdmin, (_req, res) => {
+  res.status(404).json({ success: false, message: "Admin route not found" });
+});
+
+app.use(/^\/dashboard(\/.*)?$/, requireAdmin, (_req, res) => {
+  res.status(404).json({ success: false, message: "Admin route not found" });
+});
+
+app.post("/api/users/sync", authenticate, async (req, res) => {
   const { clerkId, email, fullName, avatar } = req.body || {};
   const normalizedEmail = normalizeEmail(email);
 
   if (!normalizedEmail) {
     res.status(400).json({ error: "Email is required." });
+    return;
+  }
+
+  if (!ensureSameUserEmail(req, res, normalizedEmail)) {
     return;
   }
 
@@ -548,7 +662,7 @@ app.post("/api/users/sync", async (req, res) => {
   }
 });
 
-app.get("/api/users", async (_req, res) => {
+app.get("/api/users", requireAdmin, async (_req, res) => {
   try {
     const { users } = await getCollections();
     const records = await users.find().sort({ createdAt: -1 }).toArray();
@@ -558,7 +672,7 @@ app.get("/api/users", async (_req, res) => {
   }
 });
 
-app.post("/api/payments/create-intent", async (req, res) => {
+app.post("/api/payments/create-intent", requireUser, async (req, res) => {
   const payload = req.body || {};
   const order = buildOrderDocument(payload);
   const validationError = validateOrderInput(order);
@@ -566,6 +680,10 @@ app.post("/api/payments/create-intent", async (req, res) => {
   if (validationError) {
     console.error("[PAYMENT_ERROR] Validation failed:", validationError);
     res.status(400).json({ error: validationError });
+    return;
+  }
+
+  if (!ensureSameUserEmail(req, res, order.userEmail)) {
     return;
   }
 
@@ -600,7 +718,7 @@ app.post("/api/payments/create-intent", async (req, res) => {
   }
 });
 
-app.post("/api/orders/complete-payment", async (req, res) => {
+app.post("/api/orders/complete-payment", requireUser, async (req, res) => {
   const payload = req.body || {};
   const paymentIntentId = String(payload.paymentIntentId || "").trim();
   console.log("[PAYMENT_DEBUG] complete-payment route hit:", {
@@ -635,6 +753,10 @@ app.post("/api/orders/complete-payment", async (req, res) => {
       return;
     }
 
+    if (!ensureSameUserEmail(req, res, order.userEmail)) {
+      return;
+    }
+
     const { orders } = await getCollections();
     const existing = await orders.findOne({ paymentIntentId });
 
@@ -657,7 +779,7 @@ app.post("/api/orders/complete-payment", async (req, res) => {
   }
 });
 
-app.get("/api/orders", async (req, res) => {
+app.get("/api/orders", requireAdmin, async (req, res) => {
   const limit = Number(req.query.limit || 0);
 
   try {
@@ -675,10 +797,23 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
-app.get("/api/orders/user/:email", async (req, res) => {
+app.get("/api/orders/all", requireAdmin, async (_req, res) => {
+  try {
+    const { orders } = await getCollections();
+    const records = await orders.find().sort({ createdAt: -1 }).toArray();
+    res.json(records.map(makePublicDoc));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/orders/user/:email", requireUser, async (req, res) => {
   try {
     const { orders } = await getCollections();
     const email = normalizeEmail(req.params.email);
+    if (!ensureSameUserEmail(req, res, email)) {
+      return;
+    }
     const records = await orders.find({ userEmail: email }).sort({ createdAt: -1 }).toArray();
     res.json(records.map(makePublicDoc));
   } catch (error) {
@@ -686,7 +821,34 @@ app.get("/api/orders/user/:email", async (req, res) => {
   }
 });
 
-app.post("/api/orders", async (req, res) => {
+app.get("/api/orders/:id", authenticate, async (req, res) => {
+  const id = withObjectId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: "Invalid order id." });
+    return;
+  }
+
+  try {
+    const { orders } = await getCollections();
+    const order = await orders.findOne({ _id: id });
+
+    if (!order) {
+      res.status(404).json({ error: "Order not found." });
+      return;
+    }
+
+    if (req.auth.role !== "ADMIN" && getRecordOwnerEmail(order) !== req.auth.email) {
+      accessDenied(res);
+      return;
+    }
+
+    res.json(makePublicDoc(order));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/orders", requireUser, async (req, res) => {
   const order = buildOrderDocument(req.body || {});
   console.log("[ORDER_DEBUG] create order route hit:", {
     orderId: order.orderId,
@@ -697,6 +859,10 @@ app.post("/api/orders", async (req, res) => {
 
   if (validationError) {
     res.status(400).json({ error: validationError });
+    return;
+  }
+
+  if (!ensureSameUserEmail(req, res, order.userEmail)) {
     return;
   }
 
@@ -715,7 +881,7 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
-app.put("/api/orders/:id", async (req, res) => {
+app.put("/api/orders/:id", requireAdmin, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid order id." });
@@ -817,7 +983,7 @@ app.put("/api/orders/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/orders/:id", async (req, res) => {
+app.delete("/api/orders/:id", authenticate, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid order id." });
@@ -826,6 +992,21 @@ app.delete("/api/orders/:id", async (req, res) => {
 
   try {
     const { orders } = await getCollections();
+    const existing = await orders.findOne({ _id: id });
+
+    if (!existing) {
+      res.status(404).json({ error: "Order not found." });
+      return;
+    }
+
+    if (req.auth.role !== "ADMIN") {
+      const status = sanitizeOrderStatus(existing.orderStatus || existing.status);
+      if (getRecordOwnerEmail(existing) !== req.auth.email || status !== "PLACED") {
+        accessDenied(res);
+        return;
+      }
+    }
+
     const result = await orders.deleteOne({ _id: id });
 
     if (!result.deletedCount) {
@@ -849,7 +1030,7 @@ app.get("/api/menu", async (_req, res) => {
   }
 });
 
-app.post("/api/menu", async (req, res) => {
+app.post("/api/menu", requireAdmin, async (req, res) => {
   const payload = req.body || {};
   const document = {
     itemId: payload.itemId || makeCode("ITEM-"),
@@ -878,7 +1059,7 @@ app.post("/api/menu", async (req, res) => {
   }
 });
 
-app.put("/api/menu/:id", async (req, res) => {
+app.put("/api/menu/:id", requireAdmin, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid menu id." });
@@ -911,7 +1092,7 @@ app.put("/api/menu/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/menu/:id", async (req, res) => {
+app.delete("/api/menu/:id", requireAdmin, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid menu id." });
@@ -964,7 +1145,7 @@ app.get("/api/reservations/available-tables", async (req, res) => {
 });
 
 // Reservation deposit payment intent
-app.post("/api/reservations/create-intent", async (req, res) => {
+app.post("/api/reservations/create-intent", requireUser, async (req, res) => {
   const payload = req.body || {};
   const guests = Math.max(1, Number(payload.guests) || 1);
   const DEPOSIT_PER_GUEST = 25; // $25 per guest
@@ -972,6 +1153,10 @@ app.post("/api/reservations/create-intent", async (req, res) => {
 
   if (!payload.email || !payload.customerName) {
     res.status(400).json({ error: "customerName and email are required." });
+    return;
+  }
+
+  if (!ensureSameUserEmail(req, res, payload.email)) {
     return;
   }
 
@@ -1007,7 +1192,7 @@ app.post("/api/reservations/create-intent", async (req, res) => {
   }
 });
 
-app.get("/api/reservations", async (_req, res) => {
+app.get("/api/reservations", requireAdmin, async (_req, res) => {
   try {
     const { reservations } = await getCollections();
     const records = await reservations.find().sort({ createdAt: -1, date: -1, time: -1 }).toArray();
@@ -1017,10 +1202,23 @@ app.get("/api/reservations", async (_req, res) => {
   }
 });
 
-app.get("/api/reservations/user/:email", async (req, res) => {
+app.get("/api/reservations/all", requireAdmin, async (_req, res) => {
+  try {
+    const { reservations } = await getCollections();
+    const records = await reservations.find().sort({ createdAt: -1, date: -1, time: -1 }).toArray();
+    res.json(records.map(makePublicDoc));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/reservations/user/:email", requireUser, async (req, res) => {
   try {
     const { reservations } = await getCollections();
     const email = normalizeEmail(req.params.email);
+    if (!ensureSameUserEmail(req, res, email)) {
+      return;
+    }
     const records = await reservations.find({ email }).sort({ createdAt: -1, date: -1, time: -1 }).toArray();
     res.json(records.map(makePublicDoc));
   } catch (error) {
@@ -1028,7 +1226,7 @@ app.get("/api/reservations/user/:email", async (req, res) => {
   }
 });
 
-app.post("/api/reservations", async (req, res) => {
+app.post("/api/reservations", requireUser, async (req, res) => {
   const payload = req.body || {};
   console.log("[RESERVATION_DEBUG] create reservation route hit:", {
     email: payload.email,
@@ -1062,6 +1260,10 @@ app.post("/api/reservations", async (req, res) => {
     return;
   }
 
+  if (!ensureSameUserEmail(req, res, document.email)) {
+    return;
+  }
+
   try {
     const { reservations } = await getCollections();
     if (document.paymentIntentId) {
@@ -1088,7 +1290,34 @@ app.post("/api/reservations", async (req, res) => {
   }
 });
 
-app.put("/api/reservations/:id", async (req, res) => {
+app.get("/api/reservations/:id", authenticate, async (req, res) => {
+  const id = withObjectId(req.params.id);
+  if (!id) {
+    res.status(400).json({ error: "Invalid reservation id." });
+    return;
+  }
+
+  try {
+    const { reservations } = await getCollections();
+    const reservation = await reservations.findOne({ _id: id });
+
+    if (!reservation) {
+      res.status(404).json({ error: "Reservation not found." });
+      return;
+    }
+
+    if (req.auth.role !== "ADMIN" && getRecordOwnerEmail(reservation, "reservation") !== req.auth.email) {
+      accessDenied(res);
+      return;
+    }
+
+    res.json(makePublicDoc(reservation));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.put("/api/reservations/:id", requireAdmin, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid reservation id." });
@@ -1146,7 +1375,7 @@ app.put("/api/reservations/:id", async (req, res) => {
   }
 });
 
-app.delete("/api/reservations/:id", async (req, res) => {
+app.delete("/api/reservations/:id", requireAdmin, async (req, res) => {
   const id = withObjectId(req.params.id);
   if (!id) {
     res.status(400).json({ error: "Invalid reservation id." });
@@ -1168,7 +1397,7 @@ app.delete("/api/reservations/:id", async (req, res) => {
   }
 });
 
-app.get("/api/dashboard/admin/stats", async (_req, res) => {
+app.get("/api/dashboard/admin/stats", requireAdmin, async (_req, res) => {
   try {
     const { orders, users, reservations } = await getCollections();
     const { start, end } = dayRange();

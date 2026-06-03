@@ -1,5 +1,11 @@
 import axios from "axios";
 
+let authTokenProvider = null;
+
+export function setApiAuthTokenProvider(provider) {
+  authTokenProvider = typeof provider === "function" ? provider : null;
+}
+
 /** Normalize path so requests always hit site root `/api/...` (Vite proxy + preview). */
 function normalizeApiPath(path) {
   if (!path) return "/";
@@ -28,11 +34,16 @@ export async function apiRequest(path, options = {}, retries = 2) {
   let attempt = 0;
   while (attempt <= retries) {
     try {
+      const token = authTokenProvider ? await authTokenProvider() : "";
+      const headers = {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      };
       const response = await api.request({
         url,
         method: options.method || "GET",
         data: options.body ? JSON.parse(options.body) : undefined,
-        headers: options.headers,
+        headers,
       });
 
       return response.data ?? null;
@@ -40,7 +51,7 @@ export async function apiRequest(path, options = {}, retries = 2) {
       attempt++;
       const status = error.response?.status;
       if (error.response && status >= 400 && status < 500 && status !== 429) {
-        let message = error?.response?.data?.error || error?.message || "Request failed";
+        let message = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Request failed";
         if (status === 404 && import.meta.env.DEV) {
           message =
             "API route not found (404). Run the server in /server (port 5000) or set VITE_API_BASE_URL to your API URL.";
@@ -48,7 +59,7 @@ export async function apiRequest(path, options = {}, retries = 2) {
         throw new Error(message);
       }
       if (attempt > retries) {
-        const message = error?.response?.data?.error || error?.message || "Request failed after multiple attempts";
+        const message = error?.response?.data?.message || error?.response?.data?.error || error?.message || "Request failed after multiple attempts";
         throw new Error(message);
       }
       await new Promise((res) => setTimeout(res, 1000));

@@ -23,6 +23,7 @@ import {
 import Sidebar from "../components/dashboard/Sidebar";
 import DashboardNavbar from "../components/dashboard/DashboardNavbar";
 import StatsCard from "../components/dashboard/StatsCard";
+import { AccessDeniedMessage } from "../components/ProtectedRoute";
 import { apiRequest } from "../apiClient";
 import "../styles/dashboard.css";
 
@@ -365,10 +366,11 @@ function getTrackingMeta(order, now) {
 
 // Stepper component for order status
 
-function UserDashboard() {
+function UserDashboard({ initialTab: initialTabProp = "", detailOrderId = "", detailReservationId = "" }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
-  const initialTab = allowedTabs.has(searchParams.get("tab") || "") ? searchParams.get("tab") : "dashboard";
+  const requestedInitialTab = initialTabProp || searchParams.get("tab") || "";
+  const initialTab = allowedTabs.has(requestedInitialTab) ? requestedInitialTab : "dashboard";
   const [activeItem, setActiveItem] = useState(initialTab);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [orders, setOrders] = useState([]);
@@ -382,14 +384,16 @@ function UserDashboard() {
   const { user } = useUser();
 
   const email = user?.primaryEmailAddress?.emailAddress || "";
+  const normalizedDetailOrderId = String(detailOrderId || "").trim();
+  const normalizedDetailReservationId = String(detailReservationId || "").trim();
 
   useEffect(() => {
     const tabParam = searchParams.get("tab") || "dashboard";
-    const tab = allowedTabs.has(tabParam) ? tabParam : "dashboard";
+    const tab = initialTabProp || (allowedTabs.has(tabParam) ? tabParam : "dashboard");
     if (tab !== activeItem) {
       setActiveItem(tab);
     }
-  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialTabProp, searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSetActiveItem = (tab) => {
     setActiveItem(tab);
@@ -460,6 +464,28 @@ function UserDashboard() {
     const timerId = window.setInterval(() => setTrackingNow(new Date()), 10000);
     return () => window.clearInterval(timerId);
   }, []);
+
+  useEffect(() => {
+    if (!normalizedDetailOrderId || isLoading) return;
+    const matchedOrder = orders.find((order) => {
+      const ids = [order.id, order._id, order.orderId].map((value) => String(value || ""));
+      return ids.includes(normalizedDetailOrderId);
+    });
+    if (matchedOrder) {
+      setActiveItem("orders");
+      setSelectedOrderDetails(matchedOrder);
+    }
+  }, [isLoading, normalizedDetailOrderId, orders]);
+
+  const detailOrderAccessDenied = normalizedDetailOrderId && !isLoading && !orders.some((order) => {
+    const ids = [order.id, order._id, order.orderId].map((value) => String(value || ""));
+    return ids.includes(normalizedDetailOrderId);
+  });
+
+  const detailReservationAccessDenied = normalizedDetailReservationId && !isLoading && !reservations.some((reservation) => {
+    const ids = [reservation.id, reservation._id, reservation.reservationId].map((value) => String(value || ""));
+    return ids.includes(normalizedDetailReservationId);
+  });
 
   const handleCancelOrder = async (order) => {
     const status = normalizeOrderStatus(order.orderStatus || order.status);
@@ -1586,6 +1612,10 @@ function UserDashboard() {
       </section>
     );
   };
+
+  if (detailOrderAccessDenied || detailReservationAccessDenied) {
+    return <AccessDeniedMessage />;
+  }
 
   return (
     <div className="db-layout">
